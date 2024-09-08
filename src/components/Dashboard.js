@@ -4,9 +4,9 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import QuizComponent from './quizzes/QuizComponent';
 import ResultsPage from './ResultsPage';
-import { HiOutlineLogout } from 'react-icons/hi';
 import quizzes from '../data/quizzes/quizzes';
 import AuthPage from './AuthPage';
+import { FaPlay, FaChartBar } from 'react-icons/fa';
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -38,7 +38,9 @@ function Dashboard() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>;
   }
 
   if (!user) {
@@ -46,57 +48,54 @@ function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-800">HowISeem</h1>
-            </div>
-            <div className="flex items-center">
-              <span className="mr-4 text-gray-600">Welcome, {user.displayName}!</span>
-              <button
-                onClick={() => auth.signOut()}
-                className="btn-secondary flex items-center"
-              >
-                <HiOutlineLogout className="w-5 h-5 mr-2" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <h2 className="text-3xl font-bold mb-4 text-gray-800">Dashboard</h2>
-          {!showQuiz && !showResults ? (
+    <div className="flex flex-col items-center justify-center min-h-full py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-md w-full space-y-8">
+        {!showQuiz && !showResults ? (
+          <>
             <div>
-              <p className="mb-4 text-gray-600">Select a quiz to take or view your results.</p>
-              {Object.values(quizzes).map((quiz) => (
-                <button 
-                  key={quiz.id}
-                  onClick={() => handleStartQuiz(quiz)}
-                  className="btn-primary mr-4 mb-2"
-                >
-                  Take {quiz.title}
-                </button>
-              ))}
-              <button onClick={() => setShowResults(true)} className="btn-secondary">
+              <h1 className="mt-6 text-center text-4xl font-extrabold text-gray-900">
+                Welcome, {user.displayName || 'User'} 👋
+              </h1>
+              <p className="mt-2 text-center text-xl text-gray-600">
+                Ready to explore your personality?
+              </p>
+            </div>
+            <div className="mt-8 space-y-6">
+              <div className="bg-white shadow-md rounded-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Available Quizzes:</h2>
+                <div className="space-y-4">
+                  {Object.values(quizzes).map((quiz) => (
+                    <button 
+                      key={quiz.id}
+                      onClick={() => handleStartQuiz(quiz)}
+                      className="w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
+                    >
+                      <FaPlay className="h-5 w-5 mr-2" />
+                      Take {quiz.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowResults(true)} 
+                className="w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
+              >
+                <FaChartBar className="h-5 w-5 mr-2" />
                 View Results
               </button>
             </div>
-          ) : showQuiz ? (
-            <QuizComponent 
-              quiz={selectedQuiz}
-              isUserQuiz={true}
-              isRetake={isRetake}
-              onComplete={() => { setShowQuiz(false); setShowResults(true); }} 
-            />
-          ) : (
-            <ResultsPage />
-          )}
-        </div>
-      </main>
+          </>
+        ) : showQuiz && selectedQuiz ? (
+          <QuizComponent 
+            quiz={selectedQuiz}
+            isUserQuiz={true}
+            isRetake={isRetake}
+            onComplete={() => { setShowQuiz(false); setShowResults(true); }} 
+          />
+        ) : (
+          <ResultsPage />
+        )}
+      </div>
     </div>
   );
 }

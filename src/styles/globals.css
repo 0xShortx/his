@@ -2,22 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --primary-color: #3B82F6;
-  --secondary-color: #10B981;
-  --background-color: #F3F4F6;
-  --text-color: #1F2937;
+/* Custom classes for the Header component */
+@layer components {
+  .app {
+    @apply flex flex-col min-h-screen bg-white;
+  }
+
+  .app.with-footer {
+    @apply pb-16; /* Add padding to bottom when footer is present */
+  }
+
+  .app-header {
+    @apply bg-white shadow-sm z-10;
+  }
+
+  .header-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex justify-between items-center;
+  }
+
+  .app-logo {
+    @apply text-2xl font-bold text-gray-900 font-sans tracking-tight hover:text-blue-600 transition-colors duration-200;
+  }
+
+  .sign-out-button {
+    @apply text-gray-600 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full p-2;
+  }
+
+  .footer {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg;
+  }
+
+  .footer-nav {
+    @apply flex justify-around items-center h-16 max-w-md mx-auto;
+  }
+
+  .footer-link {
+    @apply flex flex-col items-center justify-center space-y-1 text-gray-600 hover:text-blue-600 transition-colors duration-200;
+  }
+
+  .footer-icon {
+    @apply text-xl;
+  }
+
+  .footer-text {
+    @apply text-xs font-medium;
+  }
+
+  .footer-link.active {
+    @apply text-blue-600;
+  }
+
+  .app-main {
+    @apply flex-grow overflow-y-auto px-4 sm:px-6 lg:px-8 py-6;
+  }
+}
+
+html, body, #root {
+  @apply h-full;
 }
 
 body {
-  background-color: var(--background-color);
-  color: var(--text-color);
-}
-
-.btn-primary {
-  @apply bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded;
-}
-
-.btn-secondary {
-  @apply bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded;
+  @apply m-0;
 }

@@ -4,7 +4,7 @@ import { db, auth } from '../firebase';
 import quizzes from '../data/quizzes/quizzes';
 import * as Progress from '@radix-ui/react-progress';
 import * as Separator from '@radix-ui/react-separator';
-import { Copy, LogOut } from 'lucide-react';
+import { Copy } from 'lucide-react';
 
 function ResultsPage() {
   const [results, setResults] = useState({});
@@ -98,17 +98,10 @@ function ResultsPage() {
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 p-4">
+    <div className="content-wrapper">
       <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         <div className="p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold text-gray-800">HowISeem</h1>
-            <button className="text-gray-600 flex items-center" onClick={() => auth.signOut()}>
-              <LogOut className="w-4 h-4 mr-2" />
-              <span className="sr-only">Sign Out</span>
-              Sign Out
-            </button>
-          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Your Results</h1>
           <p className="text-lg text-gray-700 mb-6">Welcome, {auth.currentUser?.displayName}!</p>
           
           {Object.entries(results).map(([quizId, result]) => {
