@@ -1,33 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import QuizComponent from './quizzes/QuizComponent';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import quizzes from '../data/quizzes/quizzes';
 
 function FriendQuizComponent() {
   const { userId, quizId } = useParams();
-  const [friendName, setFriendName] = useState('');
   const [quizCompleted, setQuizCompleted] = useState(false);
-
-  useEffect(() => {
-    const fetchFriendName = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (userDoc.exists()) {
-          setFriendName(userDoc.data().displayName);
-        } else {
-          console.log("No such user!");
-        }
-      } catch (error) {
-        console.error("Error fetching friend name:", error);
-      }
-    };
-    fetchFriendName();
-  }, [userId]);
+  const quiz = quizzes[quizId];
 
   const handleQuizComplete = () => {
     setQuizCompleted(true);
   };
+
+  if (!quiz) {
+    return <div className="text-red-500">Quiz not found. The link might be invalid.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
@@ -36,19 +23,19 @@ function FriendQuizComponent() {
         <div className="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
           {!quizCompleted ? (
             <>
-              <h1 className="text-2xl font-bold mb-4 text-center">Assess {friendName}</h1>
-              <p className="mb-4">Answer these questions about {friendName}'s self-awareness based on your observations.</p>
+              <h1 className="text-2xl font-bold mb-4 text-center">Assess Your Friend</h1>
+              <p className="mb-4">Answer these questions about your friend's self-awareness based on your observations.</p>
               <QuizComponent 
+                quiz={quiz}
                 isUserQuiz={false} 
                 friendUserId={userId} 
-                quizId={quizId}
                 onComplete={handleQuizComplete} 
               />
             </>
           ) : (
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">Thank you for your assessment!</h2>
-              <p>Your insights will help {friendName} understand their self-awareness better.</p>
+              <p>Your insights will help your friend understand their self-awareness better.</p>
             </div>
           )}
         </div>

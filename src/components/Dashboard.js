@@ -4,27 +4,30 @@ import { auth } from '../firebase';
 import QuizComponent from './quizzes/QuizComponent';
 import ResultsPage from './ResultsPage';
 import { HiOutlineLogout } from 'react-icons/hi';
-import { useNavigate } from 'react-router-dom';
+import quizzes from '../data/quizzes/quizzes';
+import AuthPage from './AuthPage'; // Import AuthPage
 
 function Dashboard() {
   const [user, setUser] = useState(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const navigate = useNavigate();
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        navigate('/login');
-      }
+      setUser(currentUser);
+      setLoading(false);
     });
     return () => unsubscribe();
-  }, [navigate]);
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   if (!user) {
-    return <div>Loading...</div>;
+    return <AuthPage />;
   }
 
   return (
@@ -53,16 +56,26 @@ function Dashboard() {
           <h2 className="text-3xl font-bold mb-4 text-gray-800">Dashboard</h2>
           {!showQuiz && !showResults ? (
             <div>
-              <p className="mb-4 text-gray-600">Welcome to your HowISeem dashboard. Here you can take the Unified Situational Self-Awareness Assessment or view your results.</p>
-              <button onClick={() => setShowQuiz(true)} className="btn-primary mr-4">
-                Take Self-Awareness Quiz
-              </button>
+              <p className="mb-4 text-gray-600">Select a quiz to take or view your results.</p>
+              {Object.values(quizzes).map((quiz) => (
+                <button 
+                  key={quiz.id}  // Add this line
+                  onClick={() => {
+                    setSelectedQuiz(quiz);
+                    setShowQuiz(true);
+                  }} 
+                  className="btn-primary mr-4 mb-2"
+                >
+                  Take {quiz.title}
+                </button>
+              ))}
               <button onClick={() => setShowResults(true)} className="btn-secondary">
                 View Results
               </button>
             </div>
           ) : showQuiz ? (
             <QuizComponent 
+              quiz={selectedQuiz}
               isUserQuiz={true}
               onComplete={() => { setShowQuiz(false); setShowResults(true); }} 
             />
