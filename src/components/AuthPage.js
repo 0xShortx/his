@@ -1,13 +1,23 @@
 import React from 'react';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import { FcGoogle } from 'react-icons/fc';
 
 function AuthPage() {
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      // Save user data to Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        displayName: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      }, { merge: true });
+
     } catch (error) {
       console.error('Error signing in with Google:', error);
     }

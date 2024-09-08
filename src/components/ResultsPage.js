@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import quizzes from '../data/quizzes/quizzes';
+import * as Progress from '@radix-ui/react-progress';
+import * as Separator from '@radix-ui/react-separator';
+import { Copy, LogOut } from 'lucide-react';
 
 function ResultsPage() {
   const [results, setResults] = useState({});
@@ -95,49 +98,97 @@ function ResultsPage() {
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="max-w-2xl mx-auto mt-8">
-      <h2 className="text-3xl font-bold mb-4">Your Results</h2>
-      {Object.entries(results).map(([quizId, result]) => {
-        const quiz = quizzes[quizId];
-        if (!quiz) {
-          console.error(`Quiz with ID ${quizId} not found`);
-          return null;
-        }
-        return (
-          <div key={quizId} className="mb-8">
-            <h3 className="text-2xl font-bold mb-2">{quiz.title}</h3>
-            <p>Your total score: {result.totalScore}</p>
-            <p>Score Percentage: {result.scorePercentage.toFixed(2)}%</p>
-            <p>Your self-awareness level: {result.selfAwarenessLevel}</p>
-            {selfPerceptionScore !== null && (
-              <p>Self-perception score: {selfPerceptionScore}%</p>
-            )}
-            <p>Interpretation: This score indicates how closely your self-assessment aligns with your friends' assessments. A higher score means greater alignment.</p>
-            
-            <div className="mt-6">
-              <h3 className="text-xl font-bold mb-2">Share with Friends</h3>
-              <button 
-                onClick={() => copyToClipboard(quizId)}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Copy Friend Quiz Link
-              </button>
-              {copySuccess && <p className="text-green-500 mt-2">{copySuccess}</p>}
-            </div>
-
-            <h3 className="text-xl font-bold mt-6 mb-2">Friend Assessments</h3>
-            {friendResults.length > 0 ? (
-              friendResults.map((friendResult, index) => (
-                <div key={index} className="mb-2">
-                  <p>{friendResult.friendName || `Friend ${index + 1}`} assessment: {getInterpretation(friendResult.totalScore, quiz)}</p>
-                </div>
-              ))
-            ) : (
-              <p>No friend assessments available yet.</p>
-            )}
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-purple-100 p-4">
+      <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-gray-800">HowISeem</h1>
+            <button className="text-gray-600 flex items-center" onClick={() => auth.signOut()}>
+              <LogOut className="w-4 h-4 mr-2" />
+              <span className="sr-only">Sign Out</span>
+              Sign Out
+            </button>
           </div>
-        );
-      })}
+          <p className="text-lg text-gray-700 mb-6">Welcome, {auth.currentUser?.displayName}!</p>
+          
+          {Object.entries(results).map(([quizId, result]) => {
+            const quiz = quizzes[quizId];
+            if (!quiz) return null;
+            return (
+              <div key={quizId} className="mb-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">Your Results</h2>
+                <p className="text-sm text-gray-600 mb-4">{quiz.title}</p>
+                
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Total score:</span>
+                    <span className="font-semibold text-gray-800">{result.totalScore}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Score Percentage:</span>
+                    <span className="font-semibold text-gray-800">{result.scorePercentage.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">Self-awareness level:</span>
+                    <span className="font-semibold text-blue-600">{result.selfAwarenessLevel}</span>
+                  </div>
+                </div>
+                
+                {selfPerceptionScore !== null && (
+                  <div className="mb-6">
+                    <span className="text-gray-700">Self-perception score:</span>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <Progress.Root className="relative overflow-hidden bg-gray-200 rounded-full w-full h-4" value={selfPerceptionScore}>
+                        <Progress.Indicator
+                          className="bg-blue-500 w-full h-full transition-transform duration-[660ms] ease-[cubic-bezier(0.65, 0, 0.35, 1)]"
+                          style={{ transform: `translateX(-${100 - selfPerceptionScore}%)` }}
+                        />
+                      </Progress.Root>
+                      <span className="font-semibold text-gray-800">{selfPerceptionScore}%</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">This score indicates how closely your self-assessment aligns with your friends' assessments. A higher score means greater alignment.</p>
+                  </div>
+                )}
+                
+                <Separator.Root className="bg-gray-200 h-px w-full my-6" />
+                
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Share with Friends</h3>
+                  <button 
+                    className="w-full bg-green-400 hover:bg-green-500 text-white font-bold py-2 px-4 rounded flex items-center justify-center"
+                    onClick={() => copyToClipboard(quizId)}
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy Friend Quiz Link
+                  </button>
+                  {copySuccess && <p className="text-green-500 mt-2">{copySuccess}</p>}
+                </div>
+                
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Friend Assessments</h3>
+                  {friendResults.length > 0 ? (
+                    friendResults.map((friendResult, index) => (
+                      <div key={index} className="flex justify-between items-center mb-2">
+                        <span className="text-gray-700">{friendResult.friendName || `Friend ${index + 1}`} assessment:</span>
+                        <span className="text-gray-600">{getInterpretation(friendResult.totalScore, quiz)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No friend assessments available yet.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          
+          <button 
+            className="w-full bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded"
+            onClick={() => window.history.back()}
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
