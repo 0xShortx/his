@@ -106,9 +106,9 @@ export const selfAwarenessQuiz = {
   ],
   scoring: {
     ranges: [
-      { min: 10, max: 20, level: 'Emerging Self-Awareness' },
-      { min: 21, max: 30, level: 'Developing Self-Awareness' },
-      { min: 31, max: 40, level: 'Advanced Self-Awareness' }
+      { maxPercentage: 33.33, level: 'Emerging Self-Awareness' },
+      { maxPercentage: 66.66, level: 'Developing Self-Awareness' },
+      { maxPercentage: 100, level: 'Advanced Self-Awareness' }
     ]
   }
 };

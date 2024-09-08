@@ -39,13 +39,17 @@ function ResultsPage() {
 
       // Calculate self-perception score
       if (Object.keys(userResults).length > 0 && newFriendResults.length > 0) {
-        const userScore = Object.values(userResults)[0].totalScore;
+        const quiz = quizzes[Object.keys(userResults)[0]];
+        const maxPossibleScore = quiz.questions.length * 4; // Assuming 4 is the max score per question
+        const userScore = userResults[Object.keys(userResults)[0]].totalScore;
         const friendScores = newFriendResults.map(doc => doc.totalScore);
         const avgFriendScore = friendScores.reduce((a, b) => a + b, 0) / friendScores.length;
-        const maxPossibleDifference = 30; // Max difference possible (40 - 10)
+        
         const actualDifference = Math.abs(userScore - avgFriendScore);
-        const score = 100 - (actualDifference / maxPossibleDifference) * 100;
-        setSelfPerceptionScore(Math.round(score));
+        const maxPossibleDifference = maxPossibleScore; // The maximum possible difference is now the maximum possible score
+        const agreementPercentage = ((maxPossibleDifference - actualDifference) / maxPossibleDifference) * 100;
+        
+        setSelfPerceptionScore(Math.round(agreementPercentage));
       }
     } catch (err) {
       console.error("Error fetching results:", err);
@@ -95,10 +99,12 @@ function ResultsPage() {
           <div key={quizId} className="mb-8">
             <h3 className="text-2xl font-bold mb-2">{quiz.title}</h3>
             <p>Your total score: {result.totalScore}</p>
+            <p>Score Percentage: {result.scorePercentage.toFixed(2)}%</p>
             <p>Your self-awareness level: {result.selfAwarenessLevel}</p>
             {selfPerceptionScore !== null && (
-              <p>Self-perception score: {selfPerceptionScore}/100</p>
+              <p>Self-perception score: {selfPerceptionScore}%</p>
             )}
+            <p>Interpretation: This score indicates how closely your self-assessment aligns with your friends' assessments. A higher score means greater alignment.</p>
             
             <div className="mt-6">
               <h3 className="text-xl font-bold mb-2">Share with Friends</h3>

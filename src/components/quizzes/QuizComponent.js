@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { db, auth } from '../../firebase';  // Add auth to the import
 
 function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -28,18 +28,25 @@ function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
     const score = Object.values(answers).reduce((sum, value) => sum + value, 0);
     setTotalScore(score);
     
+    const maxPossibleScore = questions.length * 4; // Assuming 4 is the max score per question
+    const scorePercentage = (score / maxPossibleScore) * 100;
+    
     let determinedLevel = '';
-    if (score >= 31) determinedLevel = 'Advanced Self-Awareness';
-    else if (score >= 21) determinedLevel = 'Developing Self-Awareness';
-    else determinedLevel = 'Emerging Self-Awareness';
+    for (const range of quiz.scoring.ranges) {
+      if (scorePercentage <= range.maxPercentage) {
+        determinedLevel = range.level;
+        break;
+      }
+    }
 
     setSelfAwarenessLevel(determinedLevel);
 
     const resultData = {
-      userId: friendUserId, // This will be the ID of the user being assessed
+      userId: isUserQuiz ? auth.currentUser.uid : friendUserId,
       quizId: quiz.id,
       answers,
       totalScore: score,
+      scorePercentage,
       selfAwarenessLevel: determinedLevel,
       timestamp: new Date()
     };
