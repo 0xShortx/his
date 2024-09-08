@@ -5,7 +5,7 @@
 /* Custom classes for the Header component */
 @layer components {
   .app {
-    @apply flex flex-col min-h-screen bg-white;
+    @apply flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-white;
   }
 
   .app.with-footer {
@@ -55,6 +55,10 @@
   .app-main {
     @apply flex-grow overflow-y-auto px-4 sm:px-6 lg:px-8 py-6;
   }
+
+  .app-content {
+    @apply flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8;
+  }
 }
 
 html, body, #root {
@@ -63,4 +67,9 @@ html, body, #root {
 
 body {
   @apply m-0;
+}
+
+/* Add this new style for quiz content */
+.quiz-content {
+  @apply max-w-4xl mx-auto w-full;
 }

@@ -1,6 +1,6 @@
 export const selfAwarenessQuiz = {
   id: 'unified-situational-self-awareness',
-  title: 'Unified Situational Self-Awareness Assessment',
+  title: 'Self-Awareness Assessment',
   description: 'Discover your level of self-awareness through various scenarios.',
   questions: [
     {
