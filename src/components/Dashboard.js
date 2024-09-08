@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 import QuizComponent from './quizzes/QuizComponent';
 import ResultsPage from './ResultsPage';
 import { HiOutlineLogout } from 'react-icons/hi';
 import quizzes from '../data/quizzes/quizzes';
-import AuthPage from './AuthPage'; // Import AuthPage
+import AuthPage from './AuthPage';
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -13,6 +14,7 @@ function Dashboard() {
   const [showResults, setShowResults] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRetake, setIsRetake] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -21,6 +23,19 @@ function Dashboard() {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleStartQuiz = async (quiz) => {
+    const userResultQuery = query(
+      collection(db, 'UserResults'),
+      where('userId', '==', auth.currentUser.uid),
+      where('quizId', '==', quiz.id),
+      where('isRetake', '==', false)
+    );
+    const userResultSnapshot = await getDocs(userResultQuery);
+    setIsRetake(!userResultSnapshot.empty);
+    setSelectedQuiz(quiz);
+    setShowQuiz(true);
+  };
 
   if (loading) {
     return <div>Loading...</div>;
@@ -59,11 +74,8 @@ function Dashboard() {
               <p className="mb-4 text-gray-600">Select a quiz to take or view your results.</p>
               {Object.values(quizzes).map((quiz) => (
                 <button 
-                  key={quiz.id}  // Add this line
-                  onClick={() => {
-                    setSelectedQuiz(quiz);
-                    setShowQuiz(true);
-                  }} 
+                  key={quiz.id}
+                  onClick={() => handleStartQuiz(quiz)}
                   className="btn-primary mr-4 mb-2"
                 >
                   Take {quiz.title}
@@ -77,6 +89,7 @@ function Dashboard() {
             <QuizComponent 
               quiz={selectedQuiz}
               isUserQuiz={true}
+              isRetake={isRetake}
               onComplete={() => { setShowQuiz(false); setShowResults(true); }} 
             />
           ) : (

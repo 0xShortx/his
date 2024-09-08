@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db, auth } from '../../firebase';  // Add auth to the import
+import { collection, addDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { db, auth } from '../../firebase';
 
-function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
+function QuizComponent({ quiz, isUserQuiz, friendUserId, friendName, onComplete, isRetake }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState({});
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [selfAwarenessLevel, setSelfAwarenessLevel] = useState('');
   const [totalScore, setTotalScore] = useState(0);
+  const [confirmRetake, setConfirmRetake] = useState(false);
 
   if (!quiz) {
     return <div>Loading quiz...</div>;
@@ -20,7 +21,11 @@ function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      calculateResult();
+      if (isUserQuiz && isRetake) {
+        setConfirmRetake(true);
+      } else {
+        calculateResult();
+      }
     }
   };
 
@@ -28,7 +33,7 @@ function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
     const score = Object.values(answers).reduce((sum, value) => sum + value, 0);
     setTotalScore(score);
     
-    const maxPossibleScore = questions.length * 4; // Assuming 4 is the max score per question
+    const maxPossibleScore = questions.length * 4;
     const scorePercentage = (score / maxPossibleScore) * 100;
     
     let determinedLevel = '';
@@ -41,6 +46,7 @@ function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
 
     setSelfAwarenessLevel(determinedLevel);
 
+    const timestamp = new Date();
     const resultData = {
       userId: isUserQuiz ? auth.currentUser.uid : friendUserId,
       quizId: quiz.id,
@@ -48,16 +54,49 @@ function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
       totalScore: score,
       scorePercentage,
       selfAwarenessLevel: determinedLevel,
-      timestamp: new Date()
+      timestamp,
+      friendName: isUserQuiz ? null : friendName,
+      friendAssessmentId: isUserQuiz ? null : `${friendName}-${timestamp.getTime()}`
     };
 
     console.log("Saving result data:", resultData);
 
-    try {
-      const docRef = await addDoc(collection(db, isUserQuiz ? 'UserResults' : 'friendsResult'), resultData);
-      console.log(`${isUserQuiz ? 'User' : 'Friend'} result saved with ID: `, docRef.id);
-    } catch (error) {
-      console.error("Error saving quiz result: ", error);
+    if (isUserQuiz) {
+      if (isRetake) {
+        // Update existing result
+        const existingResultQuery = query(
+          collection(db, 'UserResults'),
+          where('userId', '==', auth.currentUser.uid),
+          where('quizId', '==', quiz.id),
+          where('isRetake', '==', false)
+        );
+        const existingResultSnapshot = await getDocs(existingResultQuery);
+        if (!existingResultSnapshot.empty) {
+          const docRef = existingResultSnapshot.docs[0].ref;
+          await updateDoc(docRef, { ...resultData, isRetake: false });
+        }
+      } else {
+        // Save new result
+        await addDoc(collection(db, 'UserResults'), resultData);
+      }
+    } else {
+      if (isRetake) {
+        // Update existing friend result
+        const existingResultQuery = query(
+          collection(db, 'friendsResult'),
+          where('userId', '==', friendUserId),
+          where('quizId', '==', quiz.id),
+          where('friendName', '==', friendName)
+        );
+        const existingResultSnapshot = await getDocs(existingResultQuery);
+        if (!existingResultSnapshot.empty) {
+          const docRef = existingResultSnapshot.docs[0].ref;
+          await updateDoc(docRef, resultData);
+        }
+      } else {
+        // Save new friend result
+        await addDoc(collection(db, 'friendsResult'), resultData);
+      }
     }
 
     setQuizCompleted(true);
@@ -65,6 +104,27 @@ function QuizComponent({ quiz, isUserQuiz, friendUserId, onComplete }) {
       onComplete();
     }
   };
+
+  if (confirmRetake) {
+    return (
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-4">Confirm Quiz Retake</h2>
+        <p className="mb-4">You've already taken this quiz before. Are you sure you want to submit this new result? This will replace your previous result and all your friends' assessments will be compared to this new result.</p>
+        <button
+          onClick={calculateResult}
+          className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600 mr-4"
+        >
+          Yes, submit new result
+        </button>
+        <button
+          onClick={() => onComplete()}
+          className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded hover:bg-gray-400"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
 
   if (quizCompleted) {
     return (

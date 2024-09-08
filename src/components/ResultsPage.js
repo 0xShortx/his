@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import quizzes from '../data/quizzes/quizzes';
 
@@ -19,15 +19,23 @@ function ResultsPage() {
         return;
       }
 
-      const userResultsQuery = query(collection(db, 'UserResults'), where('userId', '==', auth.currentUser.uid));
+      // Fetch the user's first (baseline) result for each quiz
+      const userResultsQuery = query(
+        collection(db, 'UserResults'),
+        where('userId', '==', auth.currentUser.uid),
+        orderBy('timestamp', 'asc')
+      );
       const userResultsSnapshot = await getDocs(userResultsQuery);
       const userResults = {};
       userResultsSnapshot.forEach(doc => {
         const data = doc.data();
-        userResults[data.quizId] = data;
+        if (!userResults[data.quizId]) {
+          userResults[data.quizId] = data; // Only keep the first result for each quiz
+        }
       });
       setResults(userResults);
 
+      // Fetch friend results
       const friendResultsQuery = query(collection(db, 'friendsResult'), where('userId', '==', auth.currentUser.uid));
       const friendResultsSnapshot = await getDocs(friendResultsQuery);
       const newFriendResults = friendResultsSnapshot.docs.map(doc => doc.data());
@@ -121,7 +129,7 @@ function ResultsPage() {
             {friendResults.length > 0 ? (
               friendResults.map((friendResult, index) => (
                 <div key={index} className="mb-2">
-                  <p>Friend {index + 1} assessment: {getInterpretation(friendResult.totalScore, quiz)}</p>
+                  <p>{friendResult.friendName || `Friend ${index + 1}`} assessment: {getInterpretation(friendResult.totalScore, quiz)}</p>
                 </div>
               ))
             ) : (
