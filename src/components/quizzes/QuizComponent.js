@@ -18,6 +18,11 @@ function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, on
   const [showSubmitPage, setShowSubmitPage] = useState(false);
 
   useEffect(() => {
+    console.log("QuizComponent useEffect triggered");
+    console.log("quizId:", quizId);
+    console.log("friendQuizId:", friendQuizId);
+    console.log("Current quiz state:", quiz);
+
     if (friendUserId && friendQuizId) {
       setIsFriendQuiz(true);
     } else if (userId) {
@@ -25,11 +30,13 @@ function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, on
     }
 
     if (!quiz && (quizId || friendQuizId)) {
-      const selectedQuiz = quizzes[quizId || friendQuizId];
+      const selectedQuizId = quizId || friendQuizId;
+      const selectedQuiz = quizzes[selectedQuizId];
       if (selectedQuiz) {
         setQuiz(selectedQuiz);
       } else {
-        navigate('/dashboard');
+        console.error("Quiz not found:", selectedQuizId);
+        navigate('/quizzes'); // Redirect to all quizzes page if quiz not found
       }
     }
   }, [quizId, userId, navigate, quiz, friendUserId, friendQuizId]);

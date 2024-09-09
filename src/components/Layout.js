@@ -1,15 +1,15 @@
 import React from 'react';
 import Header from './Header';
-import Footer from './Footer';
+import BottomNav from './BottomNav';
 
 function Layout({ children }) {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow pb-16">
         {children}
       </main>
-      <Footer />
+      <BottomNav />
     </div>
   );
 }

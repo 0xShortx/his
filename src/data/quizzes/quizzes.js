@@ -1,8 +1,8 @@
 import { selfAwarenessQuiz } from './selfAwarenessQuiz';
 
 const quizzes = {
-  [selfAwarenessQuiz.id]: selfAwarenessQuiz,
-  // Add other quizzes here as needed
+  'self-awareness-quiz': selfAwarenessQuiz,
+  // ... other quizzes
 };
 
 export default quizzes;
