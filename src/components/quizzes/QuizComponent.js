@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import quizzes from '../../data/quizzes/quizzes';
 import { FaChartBar, FaCheckCircle, FaTwitter, FaWhatsapp, FaShareAlt } from 'react-icons/fa';
+import AuthComponent from '../AuthComponent';
 
 function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, onComplete, friendUserId, friendQuizId }) {
   const { quizId, userId } = useParams();
@@ -16,6 +17,9 @@ function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, on
   const [isFriendQuiz, setIsFriendQuiz] = useState(false);
   const [friendName, setFriendName] = useState('');
   const [showSubmitPage, setShowSubmitPage] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     console.log("QuizComponent useEffect triggered");
@@ -23,23 +27,82 @@ function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, on
     console.log("friendQuizId:", friendQuizId);
     console.log("Current quiz state:", quiz);
 
-    if (friendUserId && friendQuizId) {
-      setIsFriendQuiz(true);
-    } else if (userId) {
-      setIsFriendQuiz(true);
-    }
+    const fetchQuiz = async () => {
+      setLoading(true);
+      setError(null);
 
-    if (!quiz && (quizId || friendQuizId)) {
-      const selectedQuizId = quizId || friendQuizId;
-      const selectedQuiz = quizzes[selectedQuizId];
-      if (selectedQuiz) {
-        setQuiz(selectedQuiz);
-      } else {
-        console.error("Quiz not found:", selectedQuizId);
-        navigate('/quizzes'); // Redirect to all quizzes page if quiz not found
+      if (friendUserId && friendQuizId) {
+        setIsFriendQuiz(true);
+      } else if (userId) {
+        setIsFriendQuiz(true);
       }
-    }
+
+      const selectedQuizId = quizId || friendQuizId;
+
+      if (!quiz && selectedQuizId) {
+        try {
+          // First, try to get the quiz from the quizzes object
+          let selectedQuiz = quizzes[selectedQuizId];
+
+          // If not found in quizzes object, try to fetch from Firestore
+          if (!selectedQuiz) {
+            const quizDoc = await getDoc(doc(db, 'quizzes', selectedQuizId));
+            if (quizDoc.exists()) {
+              selectedQuiz = quizDoc.data();
+            }
+          }
+
+          if (selectedQuiz) {
+            setQuiz(selectedQuiz);
+          } else {
+            throw new Error("Quiz not found");
+          }
+        } catch (error) {
+          console.error("Error fetching quiz:", error);
+          setError("Quiz not found. The link might be invalid or the quiz has been removed.");
+        }
+      }
+
+      setLoading(false);
+    };
+
+    fetchQuiz();
+
+    // Add auth state listener
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe();
   }, [quizId, userId, navigate, quiz, friendUserId, friendQuizId]);
+
+  // If user is not authenticated and it's not a friend quiz, show AuthComponent
+  if (!user && !isFriendQuiz) {
+    return <AuthComponent />;
+  }
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-3xl font-bold mb-6 text-center text-gray-900">Error</h2>
+        <div className="bg-white shadow-lg rounded-lg p-8 text-center">
+          <p className="text-red-500">{error}</p>
+          <button 
+            onClick={() => navigate('/quizzes')}
+            className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Go to Quizzes
+          </button>
+        </div>
+      </div>
+    </div>;
+  }
 
   if (isFriendQuiz && currentQuestionIndex === 0) {
     return (
@@ -122,20 +185,29 @@ function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, on
 
   const handleSubmitResults = async () => {
     try {
-      if (isUserQuiz && auth.currentUser) {
-        const userResultRef = doc(db, 'UserResults', `${auth.currentUser.uid}_${quiz.id}_${isRetake ? 'retake' : 'initial'}`);
-        await setDoc(userResultRef, {
-          userId: auth.currentUser.uid,
+      if (isUserQuiz && user) {
+        const userResultRef = doc(db, 'UserResults', `${user.uid}_${quiz.id}_${isRetake ? 'retake' : 'initial'}`);
+        const resultData = {
+          userId: user.uid,
           quizId: quiz.id,
           answers: answers,
           timestamp: new Date(),
           isRetake,
           totalScore: quizResult.totalScore,
           archetype: quizResult.archetype
+        };
+        
+        await setDoc(userResultRef, resultData);
+
+        // Update user document
+        const userRef = doc(db, 'users', user.uid);
+        await updateDoc(userRef, {
+          quizzesTaken: arrayUnion(quiz.id),
+          [`results.${quiz.id}`]: resultData
         });
       } else if (isFriendQuiz) {
-        const friendResultRef = doc(db, 'FriendResults', `${friendUserId || userId}_${quiz.id}_${Date.now()}`);
-        await setDoc(friendResultRef, {
+        const friendResultDocId = `${friendUserId || userId}_${quiz.id}_${friendName.replace(/\s+/g, '_')}`;
+        await setDoc(doc(db, 'FriendResults', friendResultDocId), {
           userId: friendUserId || userId,
           quizId: quiz.id,
           answers: answers,
@@ -150,7 +222,6 @@ function QuizComponent({ quiz: propQuiz, isUserQuiz = true, isRetake = false, on
       setShowResults(true);
     } catch (error) {
       console.error("Error submitting quiz results:", error);
-      // Show an error message to the user
       alert("There was an error submitting your quiz results. Please try again later.");
     }
   };

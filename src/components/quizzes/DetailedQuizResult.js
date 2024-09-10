@@ -80,7 +80,10 @@ function DetailedQuizResult() {
           <p className="text-gray-600 mb-4">Invite friends to take the quiz and get their perspective on your self-awareness.</p>
           <div className="flex justify-center">
             <button 
-              onClick={() => navigator.clipboard.writeText(shareUrl)}
+              onClick={() => {
+                navigator.clipboard.writeText(shareUrl);
+                alert("Link copied to clipboard! Share this with your friends to get their perspective.");
+              }}
               className="flex items-center justify-center py-2 px-4 border border-blue-200 text-sm font-medium rounded-full text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-200 transition duration-300"
             >
               <FaShareAlt className="mr-2" /> Copy Share Link

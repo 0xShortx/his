@@ -4,7 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import QuizComponent from './components/quizzes/QuizComponent';
 import DetailedQuizResult from './components/quizzes/DetailedQuizResult';
-import FriendQuiz from './components/quizzes/FriendQuiz';
+import FriendQuizComponent from './components/quizzes/FriendQuizComponent';
 import AllQuizzes from './components/AllQuizzes';
 import MyResults from './components/MyResults';
 import Profile from './components/Profile';
@@ -25,7 +25,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/quiz/:quizId" element={<QuizComponent />} />
           <Route path="/quiz-result/:quizId" element={<DetailedQuizResult />} />
-          <Route path="/friend-quiz/:userId/:quizId" element={<FriendQuiz />} />
+          <Route path="/friend-quiz/:userId/:quizId" element={<FriendQuizComponent />} />
           <Route path="/quizzes" element={<AllQuizzes />} />
           <Route path="/my-results" element={<MyResults />} />
           <Route path="/profile" element={<Profile />} />
