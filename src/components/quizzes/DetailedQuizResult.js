@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { FaUserFriends, FaChartLine, FaShareAlt, FaInfoCircle } from 'react-icons/fa';
+import { FaUserFriends, FaChartLine, FaInfoCircle, FaTwitter, FaWhatsapp, FaCopy, FaCheck } from 'react-icons/fa';
 import { archetypeDetails } from './archetypeDetails';
 
 function DetailedQuizResult() {
@@ -11,11 +11,11 @@ function DetailedQuizResult() {
   const navigate = useNavigate();
   const [user, loading, error] = useAuthState(auth);
   const [quizResult, setQuizResult] = useState(null);
-  const [friendResult, setFriendResult] = useState(null);
-  const [friendCount, setFriendCount] = useState(0);
+  const [friendResults, setFriendResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showArchetypeDetails, setShowArchetypeDetails] = useState(false);
   const [selfAwarenessPercentage, setSelfAwarenessPercentage] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const calculateTotalScore = useCallback((result) => {
     if (result.totalScore) return result.totalScore;
@@ -23,14 +23,17 @@ function DetailedQuizResult() {
   }, []);
 
   const calculateSelfAwareness = useCallback(() => {
-    if (!quizResult || !friendResult) return;
+    if (!quizResult || friendResults.length === 0) return;
+
     const userScore = calculateTotalScore(quizResult);
-    const friendScore = calculateTotalScore(friendResult);
+    const friendScores = friendResults.map(result => calculateTotalScore(result));
+    const averageFriendScore = friendScores.reduce((sum, score) => sum + score, 0) / friendScores.length;
+
     const maxPossibleDifference = 100; // Adjust this based on your quiz's maximum possible score difference
-    const actualDifference = Math.abs(userScore - friendScore);
+    const actualDifference = Math.abs(userScore - averageFriendScore);
     const awarenessPercentage = ((maxPossibleDifference - actualDifference) / maxPossibleDifference) * 100;
     setSelfAwarenessPercentage(Math.round(awarenessPercentage));
-  }, [quizResult, friendResult, calculateTotalScore]);
+  }, [quizResult, friendResults, calculateTotalScore]);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -44,12 +47,8 @@ function DetailedQuizResult() {
         const friendResultsRef = collection(db, 'FriendResults');
         const q = query(friendResultsRef, where('userId', '==', user.uid), where('quizId', '==', quizId));
         const querySnapshot = await getDocs(q);
-        setFriendCount(querySnapshot.size);
-
-        if (querySnapshot.size > 0) {
-          const friendResultDoc = querySnapshot.docs[0];
-          setFriendResult(friendResultDoc.data());
-        }
+        const friendResultsData = querySnapshot.docs.map(doc => doc.data());
+        setFriendResults(friendResultsData);
       }
       setIsLoading(false);
     };
@@ -81,12 +80,21 @@ function DetailedQuizResult() {
     return <div className="text-center mt-10 bg-white p-8 text-gray-600">Please log in to view your quiz results.</div>;
   }
 
-  if (!quizResult || !friendResult) {
-    return <div className="text-center mt-10 bg-white p-8 text-gray-600">No results found for this quiz or no friend has taken the quiz yet.</div>;
+  if (!quizResult || friendResults.length === 0) {
+    return <div className="text-center mt-10 bg-white p-8 text-gray-600">No results found for this quiz or no friends have taken the quiz yet.</div>;
   }
 
   const archetypeInfo = archetypeDetails[quizResult.archetype] || {};
   const shareUrl = `${window.location.origin}/friend-quiz/${user.uid}/${quizId}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopySuccess(true);
+    setTimeout(() => setCopySuccess(false), 2000);
+  };
+
+  const twitterShareUrl = `https://twitter.com/intent/tweet?text=I just took the self-awareness quiz! Check out my results and take the quiz yourself:&url=${encodeURIComponent(shareUrl)}`;
+  const whatsappShareUrl = `https://wa.me/?text=I just took the self-awareness quiz! Check out my results and take the quiz yourself: ${encodeURIComponent(shareUrl)}`;
 
   return (
     <div className="min-h-screen bg-white py-12">
@@ -141,14 +149,14 @@ function DetailedQuizResult() {
               Your self-awareness level is {selfAwarenessPercentage}%
             </p>
             <p className="text-sm text-gray-500 mt-2">
-              This percentage represents how closely your self-assessment aligns with your friend's perception of you.
+              This percentage represents how closely your self-assessment aligns with the average perception of your friends.
             </p>
           </div>
 
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
               <FaUserFriends className="text-2xl text-blue-400 mr-2" />
-              <span className="text-lg text-gray-600">{friendCount} friend{friendCount !== 1 ? 's' : ''} have taken your quiz</span>
+              <span className="text-lg text-gray-600">{friendResults.length} friend{friendResults.length !== 1 ? 's' : ''} have taken your quiz</span>
             </div>
             <button
               onClick={() => navigate(`/friend-results/${user.uid}/${quizId}`)}
@@ -160,18 +168,36 @@ function DetailedQuizResult() {
         </div>
 
         <div className="bg-gray-50 rounded-lg shadow-sm p-6 mb-8">
-          <h3 className="text-xl font-semibold mb-2 text-gray-700">Share Your Results</h3>
-          <p className="text-gray-600 mb-4">Invite friends to take the quiz and get their perspective on your self-awareness.</p>
-          <div className="flex justify-center">
+          <h3 className="text-xl font-semibold mb-4 text-gray-700">Share Your Results</h3>
+          <p className="text-gray-600 mb-6">Invite friends to take the quiz and compare their perspective with your self-assessment. The more friends participate, the more accurate your self-awareness score becomes!</p>
+          <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <button 
-              onClick={() => {
-                navigator.clipboard.writeText(shareUrl);
-                alert("Link copied to clipboard! Share this with your friends to get their perspective.");
-              }}
-              className="flex items-center justify-center py-2 px-4 border border-blue-200 text-sm font-medium rounded-full text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-200 transition duration-300"
+              onClick={handleCopyLink}
+              className={`flex items-center justify-center py-2 px-4 border text-sm font-medium rounded-full transition duration-300 w-full sm:w-auto ${
+                copySuccess 
+                  ? 'border-green-500 text-green-600 bg-green-50 hover:bg-green-100' 
+                  : 'border-blue-200 text-blue-600 bg-white hover:bg-blue-50'
+              }`}
             >
-              <FaShareAlt className="mr-2" /> Copy Share Link
+              {copySuccess ? <FaCheck className="mr-2" /> : <FaCopy className="mr-2" />}
+              {copySuccess ? 'Copied!' : 'Copy Link'}
             </button>
+            <a 
+              href={twitterShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center py-2 px-4 border border-blue-400 text-sm font-medium rounded-full text-white bg-blue-400 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition duration-300 w-full sm:w-auto"
+            >
+              <FaTwitter className="mr-2" /> Share on Twitter
+            </a>
+            <a 
+              href={whatsappShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center py-2 px-4 border border-green-500 text-sm font-medium rounded-full text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-300 w-full sm:w-auto"
+            >
+              <FaWhatsapp className="mr-2" /> Share on WhatsApp
+            </a>
           </div>
         </div>
 
